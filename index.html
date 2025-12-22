@@ -203,36 +203,37 @@
             btn.disabled = true;
             btn.style.backgroundColor = "#9ca3af"; 
 
-            // TU URL DE SIEMPRE (Asegúrate que sea la correcta que termina en /exec)
-            const scriptURL = "https://script.google.com/macros/s/AKfycbypFiJUNp5f4sB7chWT0qQMUpghxkCTL_Pyj2PkS-qPBjR0EudR0cDCFfOUJjEDtkK8/exec"; 
+            // 1. TU URL BASE (Asegúrate que termina en /exec y NO tiene interrogantes al final)
+            // Ejemplo correcto: .../exec
+            // Ejemplo incorrecto: .../exec?
+            const scriptURL = "https://script.google.com/macros/s/AKfycbzOmI7m6OiimyaGX3iOo0JAP0T33ZWtn_Nd0OCwelva_XVFXNPlz6OjPuMqcj5VWL9a/exec"; 
 
-            // 1. Empaquetamos todo el JSON dentro de una variable de texto
-            const paqueteDatos = JSON.stringify({
+            // 2. Preparamos el paquete de datos
+            const datosAEnviar = {
                 mesa: mesa,
                 carrito: carrito
-            });
+            };
 
-            // 2. Creamos un formato de formulario virtual
-            const formData = new URLSearchParams();
-            formData.append("datos", paqueteDatos);
+            // 3. Convertimos el paquete a texto y lo codificamos para URL (para que los espacios y símbolos no rompan nada)
+            const payload = encodeURIComponent(JSON.stringify(datosAEnviar));
 
-            // 3. Enviamos usando el estándar de formulario (application/x-www-form-urlencoded)
-            fetch(scriptURL, {
-                method: "POST",
-                mode: "no-cors", 
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded"
-                },
-                body: formData // <--- Enviamos el formulario, no el JSON directo
+            // 4. Construimos la URL final con el parámetro ?datos=...
+            const urlFinal = scriptURL + "?datos=" + payload;
+
+            // 5. Enviamos usando GET
+            fetch(urlFinal, {
+                method: "GET",
+                mode: "no-cors" // Seguimos usando no-cors para evitar bloqueo, aunque no podamos leer la respuesta
             })
             .then(() => {
+                // Asumimos éxito porque GET en no-cors suele pasar siempre si la URL está bien
                 alert(`✅ Pedido enviado a Mesa ${mesa}`);
                 carrito = [];
                 actualizarTicket();
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert("❌ Error al enviar");
+                alert("❌ Error al enviar. Inténtalo de nuevo.");
             })
             .finally(() => {
                 btn.innerText = "Enviar a Cocina 🚀";
