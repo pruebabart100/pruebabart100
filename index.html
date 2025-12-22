@@ -19,10 +19,6 @@
     <section class="tabs">
         <button class="tab-btn btn-bebida active" onclick="filtrarCategoria('bebida')">Bebidas</button>
         <button class="tab-btn btn-comida" onclick="filtrarCategoria('comida')">Comidas</button>
-        
-        <button onclick="lanzarBateriaDePruebas()" style="background:red; color:white; padding:20px; width:100%; margin-top:20px;">
-            💣 LANZAR TEST DE CONEXIÓN
-        </button>
     </section>
 
     <main id="contenedor-productos" class="grid-productos">
@@ -41,14 +37,6 @@
     </aside>
 
     <script>
-
-        //0 prueba
-        function lanzarBateriaDePruebas() {
-    const url = "PEGA_AQUÍ_TU_NUEVA_URL_TERMINADA_EN_EXEC"; 
-    const mesa = "99";
-    
-    alert("Iniciando bombardeo de pruebas... Revisa el Excel en 10 segundos.");
-
     // PRUEBA 1: GET (Vía URL) - La más fiable pero limitada en tamaño
     // Debería salir en Excel como: GET -> FORMULARIO/GET
     const payloadGET = JSON.stringify({prueba: "1_GET_Simple"});
