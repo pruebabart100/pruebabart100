@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TPV Bar</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <div class="mesa-selector">
+            <span>Mesa:</span>
+            <input type="number" id="numMesa" value="1" min="1">
+        </div>
+        <div id="estado-conexion">🟢 Online</div>
+    </header>
+
+    <section class="tabs">
+        <button class="tab-btn btn-bebida active" onclick="filtrarCategoria('bebida')">Bebidas</button>
+        <button class="tab-btn btn-comida" onclick="filtrarCategoria('comida')">Comidas</button>
+    </section>
+
+    <main id="contenedor-productos" class="grid-productos">
+        </main>
+
+    <aside id="ticket-resumen">
+        <div id="lista-pedidos"></div>
+        
+        <div class="resumen-info">
+            <span id="contador-items">0 productos</span>
+            <span id="total-precio">0.00 €</span>
+        </div>
+        
+        <button id="btn-enviar" class="btn-enviar" onclick="enviarComanda()">
+            Enviar a Cocina 🚀
+        </button>
+    </aside>
+
+    <script>
+        // 1. CONFIGURACIÓN DE PRODUCTOS
+        // Aquí puedes añadir tus platos fácilmente
+        const productos = [
+            { id: 1, nombre: "Caña", precio: 1.50, cat: "bebida" },
+            { id: 2, nombre: "Doble", precio: 2.50, cat: "bebida" },
+            { id: 3, nombre: "Refresco", precio: 2.00, cat: "bebida" },
+            { id: 4, nombre: "Vino Copa", precio: 3.00, cat: "bebida" },
+            { id: 5, nombre: "Café", precio: 1.20, cat: "bebida" },
+            
+            { id: 6, nombre: "Bravas", precio: 4.50, cat: "comida" },
+            { id: 7, nombre: "Croquetas (6)", precio: 6.00, cat: "comida" },
+            { id: 8, nombre: "Hamburguesa", precio: 9.50, cat: "comida" },
+            { id: 9, nombre: "Ensalada", precio: 7.00, cat: "comida" },
+            { id: 10, nombre: "Pincho Tortilla", precio: 3.50, cat: "comida" }
+        ];
+
+        let carrito = [];
+
+        // 2. FUNCIONES DE INICIO
+        window.onload = function() {
+            filtrarCategoria('bebida'); // Cargar bebidas por defecto
+            actualizarTicket();
+        };
+
+        // 3. RENDERIZAR PRODUCTOS
+        function filtrarCategoria(categoria) {
+            const contenedor = document.getElementById('contenedor-productos');
+            contenedor.innerHTML = '';
+            
+            // Actualizar estilo pestañas
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.btn-${categoria}`).classList.add('active');
+
+            // Crear botones
+            const filtrados = productos.filter(p => p.cat === categoria);
+            
+            filtrados.forEach(prod => {
+                const btn = document.createElement('div');
+                btn.className = `card-producto tipo-${prod.cat}`;
+                btn.onclick = () => agregarAlCarrito(prod);
+                btn.innerHTML = `
+                    <span class="prod-nombre">${prod.nombre}</span>
+                    <span class="prod-precio">${prod.precio.toFixed(2)}€</span>
+                `;
+                contenedor.appendChild(btn);
+            });
+        }
+
+        // 4. LÓGICA DEL CARRITO
+        function agregarAlCarrito(producto) {
+            // Buscamos si ya existe para sumar cantidad (opcional), 
+            // pero para cocina suele ser mejor linea a linea o acumulado.
+            // Aquí haremos simple: añadir objeto al array.
+            carrito.push(producto);
+            actualizarTicket();
+        }
+
+        function eliminarDelCarrito(index) {
+            carrito.splice(index, 1);
+            actualizarTicket();
+        }
+
+        function actualizarTicket() {
+            const lista = document.getElementById('lista-pedidos');
+            const contador = document.getElementById('contador-items');
+            const total = document.getElementById('total-precio');
+            const btn = document.getElementById('btn-enviar');
+
+            // Renderizar lista
+            lista.innerHTML = '';
+            let totalCalc = 0;
+
+            carrito.forEach((item, index) => {
+                totalCalc += item.precio;
+                lista.innerHTML += `
+                    <div class="item-pedido">
+                        <span>${item.nombre}</span>
+                        <div>
+                            <span>${item.precio.toFixed(2)}€</span>
+                            <span class="btn-eliminar" onclick="eliminarDelCarrito(${index})">✖</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Actualizar resumen
+            contador.innerText = `${carrito.length} productos`;
+            total.innerText = `${totalCalc.toFixed(2)} €`;
+
+            // Habilitar/Deshabilitar botón
+            if(carrito.length === 0) {
+                btn.disabled = true;
+                btn.style.opacity = "0.5";
+                btn.innerText = "Selecciona productos";
+            } else {
+                btn.disabled = false;
+                btn.style.opacity = "1";
+                btn.innerText = `Enviar a Cocina (${totalCalc.toFixed(2)}€)`;
+            }
+        }
+
+        // 5. FUNCIÓN DE ENVÍO (MOCKUP POR AHORA)
+        function enviarComanda() {
+            const mesa = document.getElementById('numMesa').value;
+            if(!mesa) { alert("Por favor indica número de mesa"); return; }
+
+            const btn = document.getElementById('btn-enviar');
+            const textoOriginal = btn.innerText;
+            
+            btn.innerText = "Enviando...";
+            btn.disabled = true;
+
+            // --- AQUÍ CONECTAREMOS CON GOOGLE SHEETS EN EL SIGUIENTE PASO ---
+            // Simulamos retardo de red
+            setTimeout(() => {
+                console.log("Enviando:", { mesa: mesa, pedido: carrito });
+                alert(`✅ Pedido enviado a Mesa ${mesa}`);
+                
+                // Limpiar
+                carrito = [];
+                actualizarTicket();
+                btn.innerText = textoOriginal;
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
