@@ -139,8 +139,6 @@
             }
         }
 
-        // 5. FUNCIÓN DE ENVÍO (CONECTADA A GOOGLE SHEETS)
-        // 5. FUNCIÓN DE ENVÍO (VERSIÓN BLINDADA "NO-CORS")
         function enviarComanda() {
             const mesa = document.getElementById('numMesa').value;
             
@@ -148,42 +146,44 @@
             if(carrito.length === 0) { alert("⚠️ El carrito está vacío"); return; }
 
             const btn = document.getElementById('btn-enviar');
-            const textoOriginal = btn.innerText;
-            
             btn.innerText = "Enviando...";
             btn.disabled = true;
             btn.style.backgroundColor = "#9ca3af"; 
 
-            // ⚠️ ASEGÚRATE QUE ESTA URL TERMINA EN /exec
-            const scriptURL = "AQUI_TU_URL_DE_APPS_SCRIPT"; 
+            // TU URL DE SIEMPRE (Asegúrate que sea la correcta que termina en /exec)
+            const scriptURL = "https://script.google.com/macros/s/AKfycbypFiJUNp5f4sB7chWT0qQMUpghxkCTL_Pyj2PkS-qPBjR0EudR0cDCFfOUJjEDtkK8/exec"; 
 
-            const datos = {
+            // 1. Empaquetamos todo el JSON dentro de una variable de texto
+            const paqueteDatos = JSON.stringify({
                 mesa: mesa,
                 carrito: carrito
-            };
+            });
 
+            // 2. Creamos un formato de formulario virtual
+            const formData = new URLSearchParams();
+            formData.append("datos", paqueteDatos);
+
+            // 3. Enviamos usando el estándar de formulario (application/x-www-form-urlencoded)
             fetch(scriptURL, {
                 method: "POST",
-                mode: "no-cors", // <--- ESTA ES LA CLAVE MÁGICA
-                headers: { 
-                    "Content-Type": "text/plain" // Usamos text/plain para no enfadar a Google
+                mode: "no-cors", 
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
                 },
-                body: JSON.stringify(datos)
+                body: formData // <--- Enviamos el formulario, no el JSON directo
             })
             .then(() => {
-                // Al usar 'no-cors', no podemos saber si dio 'ok', 
-                // así que asumimos que si llegó aquí, salió bien.
                 alert(`✅ Pedido enviado a Mesa ${mesa}`);
                 carrito = [];
                 actualizarTicket();
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert("❌ Fallo técnico. Avisa al encargado.");
+                alert("❌ Error al enviar");
             })
             .finally(() => {
-                btn.innerText = "Selecciona productos";
-                btn.style.backgroundColor = ""; // Restaurar color
+                btn.innerText = "Enviar a Cocina 🚀";
+                btn.style.backgroundColor = "";
                 btn.disabled = false;
             });
         }
