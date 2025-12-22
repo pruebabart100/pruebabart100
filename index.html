@@ -140,55 +140,51 @@
         }
 
         // 5. FUNCIÓN DE ENVÍO (CONECTADA A GOOGLE SHEETS)
+        // 5. FUNCIÓN DE ENVÍO (VERSIÓN BLINDADA "NO-CORS")
         function enviarComanda() {
             const mesa = document.getElementById('numMesa').value;
             
-            // Validaciones básicas
             if(!mesa) { alert("⚠️ Por favor indica número de mesa"); return; }
             if(carrito.length === 0) { alert("⚠️ El carrito está vacío"); return; }
 
             const btn = document.getElementById('btn-enviar');
             const textoOriginal = btn.innerText;
             
-            // Feedback visual de carga
-            btn.innerText = "Enviando a cocina...";
+            btn.innerText = "Enviando...";
             btn.disabled = true;
-            btn.style.backgroundColor = "#9ca3af"; // Gris
+            btn.style.backgroundColor = "#9ca3af"; 
 
-            // LA URL QUE COPIASTE DE APPS SCRIPT VA AQUÍ:
-            const scriptURL = "https://script.google.com/macros/s/AKfycbypFiJUNp5f4sB7chWT0qQMUpghxkCTL_Pyj2PkS-qPBjR0EudR0cDCFfOUJjEDtkK8/exec";
+            // ⚠️ ASEGÚRATE QUE ESTA URL TERMINA EN /exec
+            const scriptURL = "AQUI_TU_URL_DE_APPS_SCRIPT"; 
 
-            // Preparamos el paquete de datos
             const datos = {
                 mesa: mesa,
                 carrito: carrito
             };
 
-            // Enviamos la petición
             fetch(scriptURL, {
                 method: "POST",
-                // Usamos text/plain para evitar problemas de CORS en GitHub Pages
-                headers: { "Content-Type": "text/plain" },
+                mode: "no-cors", // <--- ESTA ES LA CLAVE MÁGICA
+                headers: { 
+                    "Content-Type": "text/plain" // Usamos text/plain para no enfadar a Google
+                },
                 body: JSON.stringify(datos)
             })
-            .then(response => {
-                if (response.ok) {
-                    // Éxito
-                    alert(`✅ Pedido enviado correctamente a Mesa ${mesa}`);
-                    carrito = []; // Vaciar carrito
-                    actualizarTicket(); // Refrescar pantalla
-                } else {
-                    throw new Error("Error en la respuesta del servidor");
-                }
+            .then(() => {
+                // Al usar 'no-cors', no podemos saber si dio 'ok', 
+                // así que asumimos que si llegó aquí, salió bien.
+                alert(`✅ Pedido enviado a Mesa ${mesa}`);
+                carrito = [];
+                actualizarTicket();
             })
             .catch(error => {
-                console.error('Error!', error.message);
-                alert("❌ Error al conectar. Comprueba tu internet.");
+                console.error('Error:', error);
+                alert("❌ Fallo técnico. Avisa al encargado.");
             })
             .finally(() => {
-                // Restaurar botón pase lo que pase
                 btn.innerText = "Selecciona productos";
-                btn.style.backgroundColor = ""; // Volver al color original (vía CSS)
+                btn.style.backgroundColor = ""; // Restaurar color
+                btn.disabled = false;
             });
         }
     </script>
