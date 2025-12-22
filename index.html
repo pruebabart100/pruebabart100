@@ -11,7 +11,7 @@
     <header>
         <div class="mesa-selector">
             <span>Mesa:</span>
-            <input type="number" id="numMesa" value="1" min="1">
+            <input type="number" id="numMesa" value="" placeholder="#" style="width:60px; text-align:center;">
         </div>
         <div id="estado-conexion">🟢 Online</div>
     </header>
@@ -31,56 +31,14 @@
             <span id="contador-items">0 productos</span>
             <span id="total-precio">0.00 €</span>
         </div>
+        
         <button id="btn-enviar" class="btn-enviar" onclick="enviarComanda()">
-            Enviar a Cocina 🚀
+            Selecciona productos
         </button>
     </aside>
 
     <script>
-    // PRUEBA 1: GET (Vía URL) - La más fiable pero limitada en tamaño
-    // Debería salir en Excel como: GET -> FORMULARIO/GET
-    const payloadGET = JSON.stringify({prueba: "1_GET_Simple"});
-    const urlGet = url + "?datos=" + encodeURIComponent(payloadGET);
-    fetch(urlGet, { mode: 'no-cors' }).then(() => console.log("Enviado 1"));
-
-    // PRUEBA 2: POST como JSON Puro (text/plain para engañar CORS)
-    // Debería salir como: POST -> BODY RAW (text/plain)
-    setTimeout(() => {
-        fetch(url, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({ mesa: mesa, prueba: "2_POST_TextPlain" })
-        }).then(() => console.log("Enviado 2"));
-    }, 1000);
-
-    // PRUEBA 3: POST como Formulario (URLSearchParams)
-    // Debería salir como: POST -> FORMULARIO/GET (Parametro 'datos')
-    setTimeout(() => {
-        const formData = new URLSearchParams();
-        formData.append('datos', JSON.stringify({ mesa: mesa, prueba: "3_POST_Form" }));
-        
-        fetch(url, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: formData
-        }).then(() => console.log("Enviado 3"));
-    }, 2000);
-
-    // PRUEBA 4: POST JSON Estándar (Suele fallar por CORS, pero probemos)
-    setTimeout(() => {
-        fetch(url, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mesa: mesa, prueba: "4_POST_JsonStandard" })
-        }).then(() => console.log("Enviado 4"));
-    }, 3000);
-}
-        
         // 1. CONFIGURACIÓN DE PRODUCTOS
-        // Aquí puedes añadir tus platos fácilmente
         const productos = [
             { id: 1, nombre: "Caña", precio: 1.50, cat: "bebida" },
             { id: 2, nombre: "Doble", precio: 2.50, cat: "bebida" },
@@ -97,22 +55,20 @@
 
         let carrito = [];
 
-        // 2. FUNCIONES DE INICIO
+        // 2. INICIO
         window.onload = function() {
-            filtrarCategoria('bebida'); // Cargar bebidas por defecto
+            filtrarCategoria('bebida'); 
             actualizarTicket();
         };
 
-        // 3. RENDERIZAR PRODUCTOS
+        // 3. RENDERIZADO
         function filtrarCategoria(categoria) {
             const contenedor = document.getElementById('contenedor-productos');
             contenedor.innerHTML = '';
             
-            // Actualizar estilo pestañas
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelector(`.btn-${categoria}`).classList.add('active');
 
-            // Crear botones
             const filtrados = productos.filter(p => p.cat === categoria);
             
             filtrados.forEach(prod => {
@@ -127,11 +83,8 @@
             });
         }
 
-        // 4. LÓGICA DEL CARRITO
+        // 4. CARRITO
         function agregarAlCarrito(producto) {
-            // Buscamos si ya existe para sumar cantidad (opcional), 
-            // pero para cocina suele ser mejor linea a linea o acumulado.
-            // Aquí haremos simple: añadir objeto al array.
             carrito.push(producto);
             actualizarTicket();
         }
@@ -147,7 +100,6 @@
             const total = document.getElementById('total-precio');
             const btn = document.getElementById('btn-enviar');
 
-            // Renderizar lista
             lista.innerHTML = '';
             let totalCalc = 0;
 
@@ -164,11 +116,9 @@
                 `;
             });
 
-            // Actualizar resumen
             contador.innerText = `${carrito.length} productos`;
             total.innerText = `${totalCalc.toFixed(2)} €`;
 
-            // Habilitar/Deshabilitar botón
             if(carrito.length === 0) {
                 btn.disabled = true;
                 btn.style.opacity = "0.5";
@@ -176,10 +126,11 @@
             } else {
                 btn.disabled = false;
                 btn.style.opacity = "1";
-                btn.innerText = `Enviar a Cocina (${totalCalc.toFixed(2)}€)`;
+                btn.innerText = `Enviar a Cocina (${totalCalc.toFixed(2)}€) 🚀`;
             }
         }
 
+        // 5. ENVIAR DATOS (ESTRATEGIA GET FINAL)
         function enviarComanda() {
             const mesa = document.getElementById('numMesa').value;
             
@@ -191,30 +142,25 @@
             btn.disabled = true;
             btn.style.backgroundColor = "#9ca3af"; 
 
-            // 1. TU URL BASE (Asegúrate que termina en /exec y NO tiene interrogantes al final)
-            // Ejemplo correcto: .../exec
-            // Ejemplo incorrecto: .../exec?
+            // ============================================================
+            // 👇👇 PEGA AQUÍ TU URL (LA QUE TERMINA EN /exec) 👇👇
             const scriptURL = "https://script.google.com/macros/s/AKfycbzOmI7m6OiimyaGX3iOo0JAP0T33ZWtn_Nd0OCwelva_XVFXNPlz6OjPuMqcj5VWL9a/exec"; 
+            // ============================================================
 
-            // 2. Preparamos el paquete de datos
             const datosAEnviar = {
                 mesa: mesa,
                 carrito: carrito
             };
 
-            // 3. Convertimos el paquete a texto y lo codificamos para URL (para que los espacios y símbolos no rompan nada)
+            // Codificamos los datos para que viajen seguros en la URL
             const payload = encodeURIComponent(JSON.stringify(datosAEnviar));
-
-            // 4. Construimos la URL final con el parámetro ?datos=...
             const urlFinal = scriptURL + "?datos=" + payload;
 
-            // 5. Enviamos usando GET
             fetch(urlFinal, {
                 method: "GET",
-                mode: "no-cors" // Seguimos usando no-cors para evitar bloqueo, aunque no podamos leer la respuesta
+                mode: "no-cors"
             })
             .then(() => {
-                // Asumimos éxito porque GET en no-cors suele pasar siempre si la URL está bien
                 alert(`✅ Pedido enviado a Mesa ${mesa}`);
                 carrito = [];
                 actualizarTicket();
@@ -224,7 +170,7 @@
                 alert("❌ Error al enviar. Inténtalo de nuevo.");
             })
             .finally(() => {
-                btn.innerText = "Enviar a Cocina 🚀";
+                btn.innerText = "Selecciona productos";
                 btn.style.backgroundColor = "";
                 btn.disabled = false;
             });
