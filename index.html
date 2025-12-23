@@ -3,22 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TPV Bar - v3.0 (Dynamic Menu)</title>
+    <title>TPV Bar - v3.1 (Collapsible UI)</title>
     
     <style>
         :root { --primary: #2563eb; --food: #ea580c; --drink: #059669; --bg: #f3f4f6; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
-        body { background-color: var(--bg); padding-bottom: 110px; }
+        body { background-color: var(--bg); padding-bottom: 250px; } /* ⚠️ MUCHO ESPACIO ABAJO para el scroll */
 
+        /* LOADING */
+        #loading { position: fixed; top:0; left:0; width:100%; height:100%; background:white; z-index: 2000; display:flex; justify-content:center; align-items:center; flex-direction:column; }
+
+        /* HEADER */
         header { background: white; padding: 15px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
         .mesa-input { font-size: 1.3rem; width: 60px; text-align: center; padding: 5px; border: 2px solid var(--primary); border-radius: 8px; font-weight: bold; }
 
+        /* TABS */
         .tabs { display: flex; gap: 10px; padding: 10px; }
         .tab { flex: 1; padding: 15px; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 1rem; opacity: 0.5; cursor: pointer; }
         .tab.active { opacity: 1; transform: scale(1.02); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
         .bg-drink { background-color: var(--drink); }
         .bg-food { background-color: var(--food); }
 
+        /* GRID */
         .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px; }
         .card { background: white; padding: 20px 10px; border-radius: 10px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; border-bottom: 4px solid transparent; }
         .card:active { transform: scale(0.95); background: #e5e7eb; }
@@ -26,17 +32,48 @@
         .card.type-comida { border-bottom-color: var(--food); }
         .p-name { display: block; font-weight: bold; font-size: 1.1rem; margin-bottom: 5px; }
 
-        .ticket { position: fixed; bottom: 0; left: 0; width: 100%; background: white; padding: 15px; border-top-left-radius: 20px; border-top-right-radius: 20px; box-shadow: 0 -5px 20px rgba(0,0,0,0.15); z-index: 900; }
-        .ticket-list { max-height: 150px; overflow-y: auto; margin-bottom: 10px; font-size: 0.9rem; }
-        .ticket-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dotted #ccc; }
-        .btn-del { color: red; font-weight: bold; margin-left: 10px; cursor: pointer; padding: 0 5px; }
+        /* TICKET FLOTANTE MEJORADO */
+        .ticket { 
+            position: fixed; bottom: 0; left: 0; width: 100%; 
+            background: white; 
+            border-top-left-radius: 20px; border-top-right-radius: 20px; 
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.2); 
+            z-index: 900;
+            transition: transform 0.3s ease;
+        }
+
+        /* Pestaña para minimizar */
+        .ticket-header {
+            width: 100%; padding: 10px; text-align: center; cursor: pointer;
+            background: #f9fafb; border-top-left-radius: 20px; border-top-right-radius: 20px;
+            border-bottom: 1px solid #eee; color: #666; font-size: 1.2rem;
+        }
+
+        .ticket-content { padding: 15px; }
+        
+        /* Lista con scroll interno limitado */
+        .ticket-list { 
+            max-height: 25vh; /* Ocupa máximo el 25% de la pantalla */
+            overflow-y: auto; 
+            margin-bottom: 10px; 
+            font-size: 0.9rem; 
+            transition: max-height 0.3s ease;
+        }
+        
+        .ticket-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dotted #ccc; }
+        .btn-del { color: red; font-weight: bold; margin-left: 10px; cursor: pointer; padding: 0 10px; }
+        
+        .resumen-row { display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size: 1.1rem; }
         
         .btn-send { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 12px; font-size: 1.2rem; font-weight: bold; cursor: pointer; }
         .btn-send:disabled { background: #ccc; }
-        .version { text-align: center; font-size: 0.7rem; color: #999; margin-top: 5px; }
         
-        /* Loading Overlay */
-        #loading { position: fixed; top:0; left:0; width:100%; height:100%; background:white; z-index: 2000; display:flex; justify-content:center; align-items:center; flex-direction:column; }
+        .version { text-align: center; font-size: 0.7rem; color: #999; margin-top: 5px; }
+
+        /* ESTADO MINIMIZADO (Clase que activaremos con JS) */
+        .ticket.minimized .ticket-list { display: none; }
+        .ticket.minimized .ticket-content { padding-top: 5px; }
+        .ticket.minimized .ticket-header { background: #e5e7eb; }
     </style>
 </head>
 <body>
@@ -48,7 +85,7 @@
 
     <header>
         <div><b>MESA:</b> <input type="number" id="mesa" class="mesa-input" placeholder="#"></div>
-        <div style="font-size:0.8rem; color:green;">🟢 Conectado</div>
+        <div style="font-size:0.8rem; color:green;">🟢 v3.1</div>
     </header>
 
     <div class="tabs">
@@ -58,14 +95,22 @@
 
     <div id="grid" class="grid"></div>
 
-    <div class="ticket">
-        <div id="lista" class="ticket-list"></div>
-        <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold;">
-            <span id="contador">0 productos</span>
-            <span id="total">0.00 €</span>
+    <div id="ticket" class="ticket">
+        <div class="ticket-header" onclick="toggleCarrito()">
+            <span id="icono-toggle">🔽 Ocultar Lista</span>
         </div>
-        <button id="btn" class="btn-send" onclick="enviar()">Cargando datos...</button>
-        <div class="version">System v3.0 - Excel Menu</div>
+
+        <div class="ticket-content">
+            <div id="lista" class="ticket-list"></div>
+            
+            <div class="resumen-row">
+                <span id="contador">0 prod.</span>
+                <span id="total">0.00 €</span>
+            </div>
+            
+            <button id="btn" class="btn-send" onclick="enviar()">Cargando...</button>
+            <div class="version">System v3.1 - Collapsible</div>
+        </div>
     </div>
 
     <script>
@@ -74,73 +119,98 @@
         const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbylLFOhzua7stXARtgdQtxrS_9UC0SJjjn0quLW5zVLzcR9_kIQTmggJt0KpMctPL5K/exec";
         // ==========================================
 
-        let productos = []; // Ahora empieza vacío
+        let productos = [];
         let carrito = [];
+        let isMinimized = false; // Estado del carrito
 
-        // AL CARGAR: Pedimos el menú al Excel
-        window.onload = () => {
-            fetchMenu();
-        };
+        window.onload = () => { fetchMenu(); };
 
         function fetchMenu() {
-            // Añadimos parámetro ?action=obtener_menu
             const urlMenu = `${URL_SCRIPT}?action=obtener_menu`;
-            
             fetch(urlMenu)
-                .then(response => response.json()) // Esperamos un JSON del Excel
-                .then(data => {
-                    productos = data; // ¡Guardamos los datos del Excel!
-                    document.getElementById('loading').style.display = 'none'; // Quitamos pantalla de carga
-                    ver('bebida'); // Mostramos bebidas
+                .then(r => r.json())
+                .then(d => {
+                    productos = d;
+                    document.getElementById('loading').style.display = 'none';
+                    ver('bebida');
                     renderTicket();
                 })
-                .catch(error => {
-                    alert("❌ Error al cargar la carta. Revisa la hoja 'Menu' en Excel.");
-                    document.getElementById('loading').innerHTML = "<h2>❌ Error de conexión</h2>";
+                .catch(e => {
+                    alert("Error cargando menú");
+                    document.getElementById('loading').innerHTML = "❌ Error Conexión";
                 });
         }
 
-        function ver(categoria) {
+        function ver(cat) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelector(`.bg-${categoria === 'bebida' ? 'drink' : 'food'}`).classList.add('active');
+            document.querySelector(`.bg-${cat === 'bebida' ? 'drink' : 'food'}`).classList.add('active');
             
             const grid = document.getElementById('grid');
             grid.innerHTML = '';
             
-            // Filtramos usando los datos que vinieron del Excel
-            const filtrados = productos.filter(x => x.cat === categoria);
-            
-            if (filtrados.length === 0) {
-                grid.innerHTML = "<p style='grid-column: span 2; text-align:center; padding:20px;'>No hay productos en esta categoría.</p>";
-            }
+            const filtrados = productos.filter(x => x.cat === cat);
+            if (filtrados.length === 0) grid.innerHTML = "<p style='padding:20px; grid-column:span 2; text-align:center'>Vacío...</p>";
 
             filtrados.forEach(p => {
                 const div = document.createElement('div');
                 div.className = `card type-${p.cat}`;
                 div.innerHTML = `<span class="p-name">${p.nombre}</span><span>${p.precio.toFixed(2)}€</span>`;
-                div.onclick = () => { carrito.push(p); renderTicket(); };
+                div.onclick = () => { 
+                    carrito.push(p); 
+                    renderTicket(); 
+                    // Si el carrito está minimizado, lo abrimos al añadir algo para que se vea
+                    if(isMinimized) toggleCarrito();
+                };
                 grid.appendChild(div);
             });
+        }
+
+        // --- NUEVA FUNCIÓN: MINIMIZAR/MAXIMIZAR ---
+        function toggleCarrito() {
+            const ticket = document.getElementById('ticket');
+            const icono = document.getElementById('icono-toggle');
+            
+            isMinimized = !isMinimized; // Cambiamos estado
+            
+            if (isMinimized) {
+                ticket.classList.add('minimized');
+                icono.innerText = "🔼 Ver Pedido (" + carrito.length + ")";
+            } else {
+                ticket.classList.remove('minimized');
+                icono.innerText = "🔽 Ocultar Lista";
+            }
         }
 
         function renderTicket() {
             const lista = document.getElementById('lista');
             lista.innerHTML = '';
             let t = 0;
-            carrito.forEach((p, i) => {
+            
+            // Renderizamos lista inversa (lo último arriba)
+            const carritoInverso = [...carrito].reverse();
+
+            carritoInverso.forEach((p, i) => {
+                // Ajustamos el índice real para el borrado
+                const indexReal = carrito.length - 1 - i;
                 t += p.precio;
                 lista.innerHTML += `<div class="ticket-item">
                     <span>${p.nombre}</span>
-                    <div>${p.precio.toFixed(2)}€ <span class="btn-del" onclick="borrar(${i})">✖</span></div>
+                    <div>${p.precio.toFixed(2)}€ <span class="btn-del" onclick="borrar(${indexReal})">✖</span></div>
                 </div>`;
             });
+
             document.getElementById('total').innerText = t.toFixed(2) + ' €';
             document.getElementById('contador').innerText = carrito.length + ' prod.';
             
+            // Actualizamos también el texto del botón si está minimizado
+            if(isMinimized) {
+                 document.getElementById('icono-toggle').innerText = "🔼 Ver Pedido (" + carrito.length + ")";
+            }
+
             const btn = document.getElementById('btn');
             if(carrito.length > 0) {
                 btn.disabled = false;
-                btn.innerText = `ENVIAR PEDIDO (${t.toFixed(2)}€) 🚀`;
+                btn.innerText = `ENVIAR (${t.toFixed(2)}€) 🚀`;
             } else {
                 btn.disabled = true;
                 btn.innerText = "Selecciona productos...";
@@ -151,31 +221,24 @@
 
         function enviar() {
             const mesa = document.getElementById('mesa').value;
-            if(!mesa) { alert("⚠️ ¡Falta el número de MESA!"); return; }
-
+            if(!mesa) { alert("⚠️ Falta MESA"); return; }
             const btn = document.getElementById('btn');
-            btn.innerText = "Enviando...";
-            btn.disabled = true;
+            btn.innerText = "Enviando..."; btn.disabled = true;
 
             const datos = { mesa: mesa, carrito: carrito };
             const payload = encodeURIComponent(JSON.stringify(datos));
-            
-            // Nota: Aquí NO usamos ?action=obtener_menu, así que el script sabe que es para guardar
             const urlFinal = `${URL_SCRIPT}?datos=${payload}`;
 
             fetch(urlFinal, { method: 'GET', mode: 'no-cors' })
             .then(() => {
-                alert(`✅ ¡Pedido enviado a Mesa ${mesa}!`);
+                alert(`✅ Pedido Mesa ${mesa} OK`);
                 carrito = [];
                 renderTicket();
+                // Minimizamos el carrito al enviar para limpiar pantalla
+                if(!isMinimized) toggleCarrito();
             })
-            .catch(err => {
-                alert("❌ Error de conexión.");
-            })
-            .finally(() => {
-                if(carrito.length > 0) btn.disabled = false;
-                renderTicket();
-            });
+            .catch(e => alert("Error envío"))
+            .finally(() => { if(carrito.length>0) btn.disabled=false; renderTicket(); });
         }
     </script>
 </body>
