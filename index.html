@@ -3,66 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TPV Bar - v2.1 (Fixed)</title>
+    <title>TPV Bar - v3.0 (Dynamic Menu)</title>
     
     <style>
         :root { --primary: #2563eb; --food: #ea580c; --drink: #059669; --bg: #f3f4f6; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
         body { background-color: var(--bg); padding-bottom: 110px; }
 
-        /* HEADER */
-        header {
-            background: white; padding: 15px; position: sticky; top: 0; z-index: 100;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;
-        }
-        .mesa-input {
-            font-size: 1.3rem; width: 60px; text-align: center; padding: 5px;
-            border: 2px solid var(--primary); border-radius: 8px; font-weight: bold;
-        }
+        header { background: white; padding: 15px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
+        .mesa-input { font-size: 1.3rem; width: 60px; text-align: center; padding: 5px; border: 2px solid var(--primary); border-radius: 8px; font-weight: bold; }
 
-        /* TABS */
         .tabs { display: flex; gap: 10px; padding: 10px; }
         .tab { flex: 1; padding: 15px; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 1rem; opacity: 0.5; cursor: pointer; }
         .tab.active { opacity: 1; transform: scale(1.02); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
         .bg-drink { background-color: var(--drink); }
         .bg-food { background-color: var(--food); }
 
-        /* GRID PRODUCTOS */
         .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px; }
-        .card {
-            background: white; padding: 20px 10px; border-radius: 10px; text-align: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; border-bottom: 4px solid transparent;
-        }
+        .card { background: white; padding: 20px 10px; border-radius: 10px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; border-bottom: 4px solid transparent; }
         .card:active { transform: scale(0.95); background: #e5e7eb; }
         .card.type-bebida { border-bottom-color: var(--drink); }
         .card.type-comida { border-bottom-color: var(--food); }
         .p-name { display: block; font-weight: bold; font-size: 1.1rem; margin-bottom: 5px; }
 
-        /* TICKET FLOTANTE */
-        .ticket {
-            position: fixed; bottom: 0; left: 0; width: 100%; background: white;
-            padding: 15px; border-top-left-radius: 20px; border-top-right-radius: 20px;
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.15); z-index: 900;
-        }
+        .ticket { position: fixed; bottom: 0; left: 0; width: 100%; background: white; padding: 15px; border-top-left-radius: 20px; border-top-right-radius: 20px; box-shadow: 0 -5px 20px rgba(0,0,0,0.15); z-index: 900; }
         .ticket-list { max-height: 150px; overflow-y: auto; margin-bottom: 10px; font-size: 0.9rem; }
         .ticket-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dotted #ccc; }
         .btn-del { color: red; font-weight: bold; margin-left: 10px; cursor: pointer; padding: 0 5px; }
         
-        .btn-send {
-            width: 100%; padding: 15px; background: var(--primary); color: white;
-            border: none; border-radius: 12px; font-size: 1.2rem; font-weight: bold; cursor: pointer;
-        }
+        .btn-send { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 12px; font-size: 1.2rem; font-weight: bold; cursor: pointer; }
         .btn-send:disabled { background: #ccc; }
-        
         .version { text-align: center; font-size: 0.7rem; color: #999; margin-top: 5px; }
+        
+        /* Loading Overlay */
+        #loading { position: fixed; top:0; left:0; width:100%; height:100%; background:white; z-index: 2000; display:flex; justify-content:center; align-items:center; flex-direction:column; }
     </style>
 </head>
 <body>
 
+    <div id="loading">
+        <h2>🔄 Cargando Carta...</h2>
+        <p>Conectando con Google Sheets</p>
+    </div>
+
     <header>
-        <div>
-            <b>MESA:</b> <input type="number" id="mesa" class="mesa-input" placeholder="#">
-        </div>
+        <div><b>MESA:</b> <input type="number" id="mesa" class="mesa-input" placeholder="#"></div>
         <div style="font-size:0.8rem; color:green;">🟢 Conectado</div>
     </header>
 
@@ -79,34 +64,41 @@
             <span id="contador">0 productos</span>
             <span id="total">0.00 €</span>
         </div>
-        <button id="btn" class="btn-send" onclick="enviar()">Selecciona algo...</button>
-        <div class="version">System v2.1 - Corrected Keys</div>
+        <button id="btn" class="btn-send" onclick="enviar()">Cargando datos...</button>
+        <div class="version">System v3.0 - Excel Menu</div>
     </div>
 
     <script>
         // ==========================================
         // ⚠️ PEGA AQUÍ TU URL DE GOOGLE SCRIPT ⚠️
-        const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbzOmI7m6OiimyaGX3iOo0JAP0T33ZWtn_Nd0OCwelva_XVFXNPlz6OjPuMqcj5VWL9a/exec";
+        const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbylLFOhzua7stXARtgdQtxrS_9UC0SJjjn0quLW5zVLzcR9_kIQTmggJt0KpMctPL5K/exec";
         // ==========================================
 
-        // HE CORREGIDO LOS NOMBRES DE VARIABLES AQUÍ:
-        // nombre, precio, cat (en lugar de n, p, c)
-        const productos = [
-            { nombre: "Caña", precio: 1.50, cat: "bebida" },
-            { nombre: "Doble", precio: 2.50, cat: "bebida" },
-            { nombre: "Refresco", precio: 2.00, cat: "bebida" },
-            { nombre: "Vino", precio: 3.00, cat: "bebida" },
-            { nombre: "Café", precio: 1.20, cat: "bebida" },
-            { nombre: "Bravas", precio: 4.50, cat: "comida" },
-            { nombre: "Croquetas", precio: 6.00, cat: "comida" },
-            { nombre: "Hamburguesa", precio: 9.50, cat: "comida" },
-            { nombre: "Ensalada", precio: 7.00, cat: "comida" },
-            { nombre: "Tortilla", precio: 3.50, cat: "comida" }
-        ];
-
+        let productos = []; // Ahora empieza vacío
         let carrito = [];
 
-        window.onload = () => { ver('bebida'); renderTicket(); };
+        // AL CARGAR: Pedimos el menú al Excel
+        window.onload = () => {
+            fetchMenu();
+        };
+
+        function fetchMenu() {
+            // Añadimos parámetro ?action=obtener_menu
+            const urlMenu = `${URL_SCRIPT}?action=obtener_menu`;
+            
+            fetch(urlMenu)
+                .then(response => response.json()) // Esperamos un JSON del Excel
+                .then(data => {
+                    productos = data; // ¡Guardamos los datos del Excel!
+                    document.getElementById('loading').style.display = 'none'; // Quitamos pantalla de carga
+                    ver('bebida'); // Mostramos bebidas
+                    renderTicket();
+                })
+                .catch(error => {
+                    alert("❌ Error al cargar la carta. Revisa la hoja 'Menu' en Excel.");
+                    document.getElementById('loading').innerHTML = "<h2>❌ Error de conexión</h2>";
+                });
+        }
 
         function ver(categoria) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -115,11 +107,16 @@
             const grid = document.getElementById('grid');
             grid.innerHTML = '';
             
-            // Filtramos usando .cat en vez de .c
-            productos.filter(x => x.cat === categoria).forEach(p => {
+            // Filtramos usando los datos que vinieron del Excel
+            const filtrados = productos.filter(x => x.cat === categoria);
+            
+            if (filtrados.length === 0) {
+                grid.innerHTML = "<p style='grid-column: span 2; text-align:center; padding:20px;'>No hay productos en esta categoría.</p>";
+            }
+
+            filtrados.forEach(p => {
                 const div = document.createElement('div');
                 div.className = `card type-${p.cat}`;
-                // Usamos .nombre y .precio
                 div.innerHTML = `<span class="p-name">${p.nombre}</span><span>${p.precio.toFixed(2)}€</span>`;
                 div.onclick = () => { carrito.push(p); renderTicket(); };
                 grid.appendChild(div);
@@ -131,7 +128,7 @@
             lista.innerHTML = '';
             let t = 0;
             carrito.forEach((p, i) => {
-                t += p.precio; // Usamos .precio
+                t += p.precio;
                 lista.innerHTML += `<div class="ticket-item">
                     <span>${p.nombre}</span>
                     <div>${p.precio.toFixed(2)}€ <span class="btn-del" onclick="borrar(${i})">✖</span></div>
@@ -161,22 +158,19 @@
             btn.disabled = true;
 
             const datos = { mesa: mesa, carrito: carrito };
-            // Como ahora carrito tiene {nombre: "x", precio: 1}, el Script lo entenderá
             const payload = encodeURIComponent(JSON.stringify(datos));
+            
+            // Nota: Aquí NO usamos ?action=obtener_menu, así que el script sabe que es para guardar
             const urlFinal = `${URL_SCRIPT}?datos=${payload}`;
 
-            fetch(urlFinal, {
-                method: 'GET',
-                mode: 'no-cors',
-            })
+            fetch(urlFinal, { method: 'GET', mode: 'no-cors' })
             .then(() => {
                 alert(`✅ ¡Pedido enviado a Mesa ${mesa}!`);
                 carrito = [];
                 renderTicket();
             })
             .catch(err => {
-                console.error(err);
-                alert("❌ ERROR DE CONEXIÓN.");
+                alert("❌ Error de conexión.");
             })
             .finally(() => {
                 if(carrito.length > 0) btn.disabled = false;
