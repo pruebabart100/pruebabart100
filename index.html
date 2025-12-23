@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TPV Bar - v2.0</title>
+    <title>TPV Bar - v2.1 (Fixed)</title>
     
     <style>
         :root { --primary: #2563eb; --food: #ea580c; --drink: #059669; --bg: #f3f4f6; }
@@ -80,43 +80,47 @@
             <span id="total">0.00 €</span>
         </div>
         <button id="btn" class="btn-send" onclick="enviar()">Selecciona algo...</button>
-        <div class="version">System v2.0 - Stable</div>
+        <div class="version">System v2.1 - Corrected Keys</div>
     </div>
 
     <script>
         // ==========================================
         // ⚠️ PEGA AQUÍ TU URL DE GOOGLE SCRIPT ⚠️
-        // Asegúrate que termina en /exec y NO hay espacios
         const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbzOmI7m6OiimyaGX3iOo0JAP0T33ZWtn_Nd0OCwelva_XVFXNPlz6OjPuMqcj5VWL9a/exec";
         // ==========================================
 
+        // HE CORREGIDO LOS NOMBRES DE VARIABLES AQUÍ:
+        // nombre, precio, cat (en lugar de n, p, c)
         const productos = [
-            { n: "Caña", p: 1.50, c: "bebida" },
-            { n: "Doble", p: 2.50, c: "bebida" },
-            { n: "Refresco", p: 2.00, c: "bebida" },
-            { n: "Vino", p: 3.00, c: "bebida" },
-            { n: "Café", p: 1.20, c: "bebida" },
-            { n: "Bravas", p: 4.50, c: "comida" },
-            { n: "Croquetas", p: 6.00, c: "comida" },
-            { n: "Hamburguesa", p: 9.50, c: "comida" },
-            { n: "Ensalada", p: 7.00, c: "comida" },
-            { n: "Tortilla", p: 3.50, c: "comida" }
+            { nombre: "Caña", precio: 1.50, cat: "bebida" },
+            { nombre: "Doble", precio: 2.50, cat: "bebida" },
+            { nombre: "Refresco", precio: 2.00, cat: "bebida" },
+            { nombre: "Vino", precio: 3.00, cat: "bebida" },
+            { nombre: "Café", precio: 1.20, cat: "bebida" },
+            { nombre: "Bravas", precio: 4.50, cat: "comida" },
+            { nombre: "Croquetas", precio: 6.00, cat: "comida" },
+            { nombre: "Hamburguesa", precio: 9.50, cat: "comida" },
+            { nombre: "Ensalada", precio: 7.00, cat: "comida" },
+            { nombre: "Tortilla", precio: 3.50, cat: "comida" }
         ];
 
         let carrito = [];
 
         window.onload = () => { ver('bebida'); renderTicket(); };
 
-        function ver(cat) {
+        function ver(categoria) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelector(`.bg-${cat === 'bebida' ? 'drink' : 'food'}`).classList.add('active');
+            document.querySelector(`.bg-${categoria === 'bebida' ? 'drink' : 'food'}`).classList.add('active');
             
             const grid = document.getElementById('grid');
             grid.innerHTML = '';
-            productos.filter(x => x.c === cat).forEach(p => {
+            
+            // Filtramos usando .cat en vez de .c
+            productos.filter(x => x.cat === categoria).forEach(p => {
                 const div = document.createElement('div');
-                div.className = `card type-${p.c}`;
-                div.innerHTML = `<span class="p-name">${p.n}</span><span>${p.p.toFixed(2)}€</span>`;
+                div.className = `card type-${p.cat}`;
+                // Usamos .nombre y .precio
+                div.innerHTML = `<span class="p-name">${p.nombre}</span><span>${p.precio.toFixed(2)}€</span>`;
                 div.onclick = () => { carrito.push(p); renderTicket(); };
                 grid.appendChild(div);
             });
@@ -127,10 +131,10 @@
             lista.innerHTML = '';
             let t = 0;
             carrito.forEach((p, i) => {
-                t += p.p;
+                t += p.precio; // Usamos .precio
                 lista.innerHTML += `<div class="ticket-item">
-                    <span>${p.n}</span>
-                    <div>${p.p.toFixed(2)}€ <span class="btn-del" onclick="borrar(${i})">✖</span></div>
+                    <span>${p.nombre}</span>
+                    <div>${p.precio.toFixed(2)}€ <span class="btn-del" onclick="borrar(${i})">✖</span></div>
                 </div>`;
             });
             document.getElementById('total').innerText = t.toFixed(2) + ' €';
@@ -156,29 +160,26 @@
             btn.innerText = "Enviando...";
             btn.disabled = true;
 
-            // PREPARAR DATOS
             const datos = { mesa: mesa, carrito: carrito };
-            // Codificamos para URL de forma segura
+            // Como ahora carrito tiene {nombre: "x", precio: 1}, el Script lo entenderá
             const payload = encodeURIComponent(JSON.stringify(datos));
             const urlFinal = `${URL_SCRIPT}?datos=${payload}`;
 
-            // ESTRATEGIA GET (La más robusta para GitHub Pages)
             fetch(urlFinal, {
                 method: 'GET',
-                mode: 'no-cors', // Importante para saltar seguridad del navegador
+                mode: 'no-cors',
             })
             .then(() => {
-                // Al ser no-cors, si llega aquí asumimos éxito
                 alert(`✅ ¡Pedido enviado a Mesa ${mesa}!`);
                 carrito = [];
                 renderTicket();
             })
             .catch(err => {
                 console.error(err);
-                alert("❌ ERROR DE CONEXIÓN. \n\n1. Revisa tu internet.\n2. Verifica que la URL del Script sea correcta.");
+                alert("❌ ERROR DE CONEXIÓN.");
             })
             .finally(() => {
-                if(carrito.length > 0) btn.disabled = false; // Restaurar si falló
+                if(carrito.length > 0) btn.disabled = false;
                 renderTicket();
             });
         }
