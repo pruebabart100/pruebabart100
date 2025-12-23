@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TPV Bar - v3.1 (Collapsible UI)</title>
+    <title>TPV Bar - v3.2 (Grouped Items)</title>
     
     <style>
         :root { --primary: #2563eb; --food: #ea580c; --drink: #059669; --bg: #f3f4f6; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
-        body { background-color: var(--bg); padding-bottom: 250px; } /* ⚠️ MUCHO ESPACIO ABAJO para el scroll */
+        body { background-color: var(--bg); padding-bottom: 250px; }
 
         /* LOADING */
         #loading { position: fixed; top:0; left:0; width:100%; height:100%; background:white; z-index: 2000; display:flex; justify-content:center; align-items:center; flex-direction:column; }
@@ -32,45 +32,36 @@
         .card.type-comida { border-bottom-color: var(--food); }
         .p-name { display: block; font-weight: bold; font-size: 1.1rem; margin-bottom: 5px; }
 
-        /* TICKET FLOTANTE MEJORADO */
+        /* TICKET FLOTANTE */
         .ticket { 
-            position: fixed; bottom: 0; left: 0; width: 100%; 
-            background: white; 
+            position: fixed; bottom: 0; left: 0; width: 100%; background: white; 
             border-top-left-radius: 20px; border-top-right-radius: 20px; 
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.2); 
-            z-index: 900;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.2); z-index: 900;
             transition: transform 0.3s ease;
         }
-
-        /* Pestaña para minimizar */
         .ticket-header {
             width: 100%; padding: 10px; text-align: center; cursor: pointer;
             background: #f9fafb; border-top-left-radius: 20px; border-top-right-radius: 20px;
             border-bottom: 1px solid #eee; color: #666; font-size: 1.2rem;
         }
-
         .ticket-content { padding: 15px; }
+        .ticket-list { max-height: 25vh; overflow-y: auto; margin-bottom: 10px; font-size: 0.9rem; transition: max-height 0.3s ease; }
         
-        /* Lista con scroll interno limitado */
-        .ticket-list { 
-            max-height: 25vh; /* Ocupa máximo el 25% de la pantalla */
-            overflow-y: auto; 
-            margin-bottom: 10px; 
-            font-size: 0.9rem; 
-            transition: max-height 0.3s ease;
-        }
-        
-        .ticket-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dotted #ccc; }
-        .btn-del { color: red; font-weight: bold; margin-left: 10px; cursor: pointer; padding: 0 10px; }
-        
+        /* ITEM DEL TICKET (Diseño mejorado para cantidades) */
+        .ticket-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dotted #ccc; }
+        .item-left { display: flex; align-items: center; gap: 8px; }
+        .qty-badge { background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
+        .btn-controls { display: flex; gap: 10px; align-items: center; }
+        .btn-mini { width: 30px; height: 30px; border-radius: 50%; border: 1px solid #ccc; background: white; font-weight: bold; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+        .btn-mini.red { color: red; border-color: #fca5a5; }
+
         .resumen-row { display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size: 1.1rem; }
-        
         .btn-send { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 12px; font-size: 1.2rem; font-weight: bold; cursor: pointer; }
         .btn-send:disabled { background: #ccc; }
         
         .version { text-align: center; font-size: 0.7rem; color: #999; margin-top: 5px; }
 
-        /* ESTADO MINIMIZADO (Clase que activaremos con JS) */
+        /* ESTADO MINIMIZADO */
         .ticket.minimized .ticket-list { display: none; }
         .ticket.minimized .ticket-content { padding-top: 5px; }
         .ticket.minimized .ticket-header { background: #e5e7eb; }
@@ -85,7 +76,7 @@
 
     <header>
         <div><b>MESA:</b> <input type="number" id="mesa" class="mesa-input" placeholder="#"></div>
-        <div style="font-size:0.8rem; color:green;">🟢 v3.1</div>
+        <div style="font-size:0.8rem; color:green;">🟢 v3.2</div>
     </header>
 
     <div class="tabs">
@@ -109,19 +100,19 @@
             </div>
             
             <button id="btn" class="btn-send" onclick="enviar()">Cargando...</button>
-            <div class="version">System v3.1 - Collapsible</div>
+            <div class="version">System v3.2 - Grouped Items</div>
         </div>
     </div>
 
     <script>
         // ==========================================
         // ⚠️ PEGA AQUÍ TU URL DE GOOGLE SCRIPT ⚠️
-        const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbylLFOhzua7stXARtgdQtxrS_9UC0SJjjn0quLW5zVLzcR9_kIQTmggJt0KpMctPL5K/exec";
+        const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbwJ7FxFKP0rKMMOD7A5A-fVhTD7SS1S4jFjNuAoXGAt6Bt2gXG_zQ8ymLoO7-K4AlW5/exec";
         // ==========================================
 
         let productos = [];
-        let carrito = [];
-        let isMinimized = false; // Estado del carrito
+        let carrito = []; // Ahora guardará objetos { ...producto, cantidad: X }
+        let isMinimized = false;
 
         window.onload = () => { fetchMenu(); };
 
@@ -155,69 +146,100 @@
                 const div = document.createElement('div');
                 div.className = `card type-${p.cat}`;
                 div.innerHTML = `<span class="p-name">${p.nombre}</span><span>${p.precio.toFixed(2)}€</span>`;
+                // Llama a la nueva función de agregar
                 div.onclick = () => { 
-                    carrito.push(p); 
-                    renderTicket(); 
-                    // Si el carrito está minimizado, lo abrimos al añadir algo para que se vea
-                    if(isMinimized) toggleCarrito();
+                    agregarAlCarrito(p); 
+                    if(isMinimized) toggleCarrito(); 
                 };
                 grid.appendChild(div);
             });
         }
 
-        // --- NUEVA FUNCIÓN: MINIMIZAR/MAXIMIZAR ---
+        // --- LÓGICA DE AGRUPACIÓN ---
+        function agregarAlCarrito(productoNuevo) {
+            // Buscamos si ya existe un producto con el mismo nombre en el carrito
+            const existente = carrito.find(item => item.nombre === productoNuevo.nombre);
+
+            if (existente) {
+                // Si existe, sumamos 1 a la cantidad
+                existente.cantidad++;
+            } else {
+                // Si no existe, creamos una copia y le ponemos cantidad 1
+                // Usamos spread operator (...) para copiar las propiedades
+                carrito.push({ ...productoNuevo, cantidad: 1 });
+            }
+            renderTicket();
+        }
+
+        function restarDelCarrito(index) {
+            // Si hay más de 1, restamos. Si hay 1, borramos.
+            if (carrito[index].cantidad > 1) {
+                carrito[index].cantidad--;
+            } else {
+                carrito.splice(index, 1);
+            }
+            renderTicket();
+        }
+
         function toggleCarrito() {
             const ticket = document.getElementById('ticket');
             const icono = document.getElementById('icono-toggle');
-            
-            isMinimized = !isMinimized; // Cambiamos estado
+            isMinimized = !isMinimized;
             
             if (isMinimized) {
                 ticket.classList.add('minimized');
-                icono.innerText = "🔼 Ver Pedido (" + carrito.length + ")";
+                icono.innerText = `🔼 Ver Pedido (${obtenerTotalItems()})`;
             } else {
                 ticket.classList.remove('minimized');
                 icono.innerText = "🔽 Ocultar Lista";
             }
         }
 
+        function obtenerTotalItems() {
+            // Suma todas las cantidades de todos los productos
+            return carrito.reduce((acc, item) => acc + item.cantidad, 0);
+        }
+
         function renderTicket() {
             const lista = document.getElementById('lista');
             lista.innerHTML = '';
-            let t = 0;
+            let precioTotal = 0;
             
-            // Renderizamos lista inversa (lo último arriba)
-            const carritoInverso = [...carrito].reverse();
+            // Recorremos el carrito
+            carrito.forEach((item, index) => {
+                const subtotal = item.precio * item.cantidad;
+                precioTotal += subtotal;
 
-            carritoInverso.forEach((p, i) => {
-                // Ajustamos el índice real para el borrado
-                const indexReal = carrito.length - 1 - i;
-                t += p.precio;
-                lista.innerHTML += `<div class="ticket-item">
-                    <span>${p.nombre}</span>
-                    <div>${p.precio.toFixed(2)}€ <span class="btn-del" onclick="borrar(${indexReal})">✖</span></div>
+                lista.innerHTML += `
+                <div class="ticket-item">
+                    <div class="item-left">
+                        <span class="qty-badge">x${item.cantidad}</span>
+                        <span>${item.nombre}</span>
+                    </div>
+                    <div class="btn-controls">
+                        <span>${subtotal.toFixed(2)}€</span>
+                        <div class="btn-mini red" onclick="restarDelCarrito(${index})">➖</div>
+                    </div>
                 </div>`;
             });
 
-            document.getElementById('total').innerText = t.toFixed(2) + ' €';
-            document.getElementById('contador').innerText = carrito.length + ' prod.';
+            document.getElementById('total').innerText = precioTotal.toFixed(2) + ' €';
+            const totalItems = obtenerTotalItems();
+            document.getElementById('contador').innerText = totalItems + ' items';
             
-            // Actualizamos también el texto del botón si está minimizado
             if(isMinimized) {
-                 document.getElementById('icono-toggle').innerText = "🔼 Ver Pedido (" + carrito.length + ")";
+                 document.getElementById('icono-toggle').innerText = `🔼 Ver Pedido (${totalItems})`;
             }
 
             const btn = document.getElementById('btn');
             if(carrito.length > 0) {
                 btn.disabled = false;
-                btn.innerText = `ENVIAR (${t.toFixed(2)}€) 🚀`;
+                btn.innerText = `ENVIAR (${precioTotal.toFixed(2)}€) 🚀`;
             } else {
                 btn.disabled = true;
                 btn.innerText = "Selecciona productos...";
             }
         }
-
-        function borrar(i) { carrito.splice(i, 1); renderTicket(); }
 
         function enviar() {
             const mesa = document.getElementById('mesa').value;
@@ -234,11 +256,13 @@
                 alert(`✅ Pedido Mesa ${mesa} OK`);
                 carrito = [];
                 renderTicket();
-                // Minimizamos el carrito al enviar para limpiar pantalla
                 if(!isMinimized) toggleCarrito();
             })
             .catch(e => alert("Error envío"))
-            .finally(() => { if(carrito.length>0) btn.disabled=false; renderTicket(); });
+            .finally(() => { 
+                if(carrito.length > 0) btn.disabled=false; 
+                renderTicket(); 
+            });
         }
     </script>
 </body>
