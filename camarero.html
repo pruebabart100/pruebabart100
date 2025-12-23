@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salón - Camareros</title>
+    <style>
+        :root { --bg: #f3f4f6; --card: #fff; --alert: #ef4444; --wait: #f59e0b; --ok: #10b981; --primary: #2563eb; }
+        * { box-sizing: border-box; font-family: sans-serif; margin: 0; padding: 0; }
+        body { background: var(--bg); padding: 15px; }
+
+        h1 { margin-bottom: 20px; text-align: center; color: #333; }
+
+        /* GRID DE MESAS */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; }
+
+        .mesa-card {
+            background: var(--card); border-radius: 15px; padding: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center;
+            display: flex; flex-direction: column; justify-content: space-between;
+            min-height: 180px; transition: transform 0.2s;
+        }
+        
+        .mesa-num { font-size: 2rem; font-weight: bold; color: #374151; margin-bottom: 5px; }
+        .mesa-total { font-size: 1.2rem; color: #6b7280; font-weight: bold; margin-bottom: 15px; }
+
+        /* ESTADOS */
+        .status-box { padding: 10px; border-radius: 8px; margin-bottom: 10px; font-weight: bold; font-size: 0.9rem; }
+        
+        .status-alert { background: #fee2e2; color: var(--alert); border: 1px solid var(--alert); animation: pulse 2s infinite; cursor: pointer; }
+        .status-wait { background: #fef3c7; color: var(--wait); }
+        .status-ok { background: #d1fae5; color: var(--ok); }
+
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+        /* BOTONES */
+        .btn-group { display: flex; gap: 5px; margin-top: auto; }
+        .btn { flex: 1; padding: 8px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: white; font-size: 0.9rem; }
+        .btn-add { background: var(--primary); }
+        .btn-pay { background: #111827; }
+
+        /* MODAL TICKET */
+        #modal-ticket {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000;
+        }
+        .ticket-paper {
+            background: white; width: 300px; padding: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); text-align: left;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .ticket-items { border-top: 1px dashed #000; border-bottom: 1px dashed #000; margin: 15px 0; padding: 10px 0; max-height: 300px; overflow-y: auto; }
+        .ticket-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .ticket-total { text-align: right; font-size: 1.5rem; font-weight: bold; margin-top: 10px; }
+        
+        /* IMPRESIÓN (OCULTAR TODO MENOS EL TICKET) */
+        @media print {
+            body * { visibility: hidden; }
+            #modal-ticket, #modal-ticket * { visibility: visible; }
+            #modal-ticket { position: absolute; left: 0; top: 0; background: none; }
+            .ticket-paper { box-shadow: none; width: 100%; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Sala / Camareros</h1>
+    <div id="grid" class="grid">
+        </div>
+
+    <div id="modal-ticket">
+        <div class="ticket-paper">
+            <h3 style="text-align:center;">BAR GITHUB</h3>
+            <p style="text-align:center;">Calle Falsa 123</p>
+            <p id="ticket-fecha" style="text-align:center; font-size:0.8rem; margin-bottom:10px;"></p>
+            
+            <div style="text-align:center; font-weight:bold; font-size:1.2rem; margin:10px 0;">MESA <span id="ticket-mesa"></span></div>
+            
+            <div id="ticket-content" class="ticket-items"></div>
+            
+            <div class="ticket-total">TOTAL: <span id="ticket-total"></span>€</div>
+            <p style="text-align:center; margin-top:20px; font-size:0.8rem;">¡Gracias por su visita!</p>
+
+            <div class="btn-group no-print" style="margin-top:20px;">
+                <button class="btn" style="background:#666;" onclick="cerrarModal()">Cancelar</button>
+                <button class="btn btn-pay" onclick="imprimirYCerrar()">🖨️ Imprimir y Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ PEGA TU URL DE APPS SCRIPT AQUÍ
+        const URL = "https://script.google.com/macros/s/AKfycbyhv-_KIM-lLHPNRI4IQczBgoNLneFsb_nsRtE32ktXCsaT_v49CFONS6qX-l0V1wbh/exec";
+
+        let mesaActualParaCobro = null;
+
+        window.onload = () => {
+            cargarMesas();
+            setInterval(cargarMesas, 10000); // Refrescar cada 10s
+        };
+
+        function cargarMesas() {
+            fetch(`${URL}?action=resumen_mesas`)
+                .then(r => r.json())
+                .then(mesas => renderizarMesas(mesas))
+                .catch(e => console.error(e));
+        }
+
+        function renderizarMesas(mesas) {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = ''; // Limpiar
+
+            // Si no hay mesas abiertas
+            if (Object.keys(mesas).length === 0) {
+                grid.innerHTML = '<p style="text-align:center; grid-column:1/-1;">No hay mesas abiertas.</p>';
+                return;
+            }
+
+            // Recorremos cada mesa devuelta por el Script
+            for (const [numMesa, datos] of Object.entries(mesas)) {
+                let estadoHTML = '';
+                let botonCobrar = '';
+
+                // LÓGICA DE ESTADOS
+                if (datos.alertas > 0) {
+                    // Hay platos listos
+                    estadoHTML = `<div class="status-box status-alert" onclick="servirMesa(${numMesa})">🔔 ${datos.alertas} PLATOS LISTOS<br><small>(Toca para servir)</small></div>`;
+                } else if (datos.pendientes > 0) {
+                    // Hay platos en cocina
+                    estadoHTML = `<div class="status-box status-wait">⏳ ${datos.pendientes} en cocina...</div>`;
+                } else {
+                    // Todo servido
+                    estadoHTML = `<div class="status-box status-ok">✅ Todo Servido</div>`;
+                    // Solo mostramos cobrar si no hay nada pendiente
+                    botonCobrar = `<button class="btn btn-pay" onclick='mostrarTicket(${numMesa}, ${JSON.stringify(datos)})'>💸 Cuenta</button>`;
+                }
+
+                // Generar Tarjeta
+                const card = document.createElement('div');
+                card.className = 'mesa-card';
+                card.innerHTML = `
+                    <div>
+                        <div class="mesa-num">Mesa ${numMesa}</div>
+                        <div class="mesa-total">${datos.total.toFixed(2)}€</div>
+                        ${estadoHTML}
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-add" onclick="irAIndex(${numMesa})">➕ Añadir</button>
+                        ${botonCobrar}
+                    </div>
+                `;
+                grid.appendChild(card);
+            }
+        }
+
+        // --- ACCIONES ---
+
+        function irAIndex(mesa) {
+            // Un truco para pre-cargar la mesa en index.html sería usar localStorage o parámetros URL
+            // Por simplicidad, mandamos al index y que el camarero ponga la mesa.
+            // Opción PRO: index.html?mesa=1
+            window.location.href = `index.html`; 
+        }
+
+        function servirMesa(mesa) {
+            if(!confirm(`¿Marcar platos de Mesa ${mesa} como ENTREGADOS?`)) return;
+            
+            // UI Optimista
+            cargarMesas(); // Forzamos recarga visual rápida
+            
+            fetch(`${URL}?action=servir_mesa&mesa=${mesa}`)
+                .then(() => cargarMesas());
+        }
+
+        // --- SISTEMA DE TICKET ---
+
+        function mostrarTicket(mesa, datos) {
+            mesaActualParaCobro = mesa;
+            document.getElementById('ticket-mesa').innerText = mesa;
+            document.getElementById('ticket-fecha').innerText = new Date().toLocaleString();
+            
+            const content = document.getElementById('ticket-content');
+            content.innerHTML = '';
+            
+            // Agrupar items iguales para el ticket
+            const itemsAgrupados = {};
+            datos.items.forEach(item => {
+                if(!itemsAgrupados[item.nombre]) itemsAgrupados[item.nombre] = { cant: 0, total: 0 };
+                itemsAgrupados[item.nombre].cant += item.cant;
+                itemsAgrupados[item.nombre].total += item.total;
+            });
+
+            for (const [nombre, info] of Object.entries(itemsAgrupados)) {
+                content.innerHTML += `
+                    <div class="ticket-row">
+                        <span>${info.cant} x ${nombre}</span>
+                        <span>${info.total.toFixed(2)}€</span>
+                    </div>`;
+            }
+
+            document.getElementById('ticket-total').innerText = datos.total.toFixed(2);
+            document.getElementById('modal-ticket').style.display = 'flex';
+        }
+
+        function cerrarModal() {
+            document.getElementById('modal-ticket').style.display = 'none';
+        }
+
+        function imprimirYCerrar() {
+            // 1. Abrir diálogo de impresión
+            window.print();
+
+            // 2. Una vez impreso (o si el usuario cancela, no podemos saberlo con certeza en JS puro, 
+            // pero asumimos que quiere cerrar la mesa en el sistema)
+            if(confirm("¿Se ha cobrado correctamente? Esto cerrará la mesa en el sistema.")) {
+                fetch(`${URL}?action=cobrar_mesa&mesa=${mesaActualParaCobro}`)
+                    .then(() => {
+                        cerrarModal();
+                        cargarMesas();
+                    });
+            }
+        }
+    </script>
+</body>
+</html>
