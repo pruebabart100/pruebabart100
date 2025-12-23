@@ -3,229 +3,183 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TPV Bar - Versión Final</title>
+    <title>TPV Bar - v2.0</title>
     
     <style>
-        :root {
-            --primary-color: #2563eb;
-            --food-color: #ea580c;
-            --drink-color: #059669;
-            --bg-color: #f3f4f6;
-            --card-bg: #ffffff;
-        }
+        :root { --primary: #2563eb; --food: #ea580c; --drink: #059669; --bg: #f3f4f6; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+        body { background-color: var(--bg); padding-bottom: 110px; }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-        body { background-color: var(--bg-color); padding-bottom: 100px; } /* Espacio para el carrito */
-
-        /* Cabecera */
+        /* HEADER */
         header {
-            background: var(--card-bg);
-            padding: 15px;
-            position: sticky; top: 0; z-index: 100;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            display: flex; justify-content: space-between; align-items: center;
+            background: white; padding: 15px; position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;
         }
-        #numMesa {
-            font-size: 1.2rem; padding: 5px; width: 60px;
-            text-align: center; border: 2px solid var(--primary-color); border-radius: 8px;
+        .mesa-input {
+            font-size: 1.3rem; width: 60px; text-align: center; padding: 5px;
+            border: 2px solid var(--primary); border-radius: 8px; font-weight: bold;
         }
 
-        /* Pestañas */
-        .tabs { display: flex; margin: 10px; gap: 10px; }
-        .tab-btn {
-            flex: 1; padding: 15px; border: none; border-radius: 8px;
-            font-weight: bold; font-size: 1rem; color: white; cursor: pointer; opacity: 0.6;
-        }
-        .tab-btn.active { opacity: 1; transform: scale(1.02); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        .btn-comida { background-color: var(--food-color); }
-        .btn-bebida { background-color: var(--drink-color); }
+        /* TABS */
+        .tabs { display: flex; gap: 10px; padding: 10px; }
+        .tab { flex: 1; padding: 15px; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 1rem; opacity: 0.5; cursor: pointer; }
+        .tab.active { opacity: 1; transform: scale(1.02); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .bg-drink { background-color: var(--drink); }
+        .bg-food { background-color: var(--food); }
 
-        /* Rejilla Productos */
-        .grid-productos {
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px;
+        /* GRID PRODUCTOS */
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px; }
+        .card {
+            background: white; padding: 20px 10px; border-radius: 10px; text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; border-bottom: 4px solid transparent;
         }
-        .card-producto {
-            background: var(--card-bg); padding: 20px 10px; border-radius: 10px;
-            text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer;
-            border-bottom: 4px solid transparent;
-        }
-        .card-producto:active { transform: scale(0.95); background-color: #e5e7eb; }
-        .card-producto.tipo-comida { border-bottom-color: var(--food-color); }
-        .card-producto.tipo-bebida { border-bottom-color: var(--drink-color); }
-        .prod-nombre { display: block; font-weight: bold; font-size: 1.1rem; margin-bottom: 5px; }
+        .card:active { transform: scale(0.95); background: #e5e7eb; }
+        .card.type-bebida { border-bottom-color: var(--drink); }
+        .card.type-comida { border-bottom-color: var(--food); }
+        .p-name { display: block; font-weight: bold; font-size: 1.1rem; margin-bottom: 5px; }
 
-        /* Carrito Flotante */
-        #ticket-resumen {
-            position: fixed; bottom: 0; left: 0; width: 100%;
-            background: white; box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
-            padding: 15px; z-index: 200; border-top-left-radius: 15px; border-top-right-radius: 15px;
+        /* TICKET FLOTANTE */
+        .ticket {
+            position: fixed; bottom: 0; left: 0; width: 100%; background: white;
+            padding: 15px; border-top-left-radius: 20px; border-top-right-radius: 20px;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.15); z-index: 900;
         }
-        .resumen-info { display: flex; justify-content: space-between; margin-bottom: 10px; font-weight: bold; }
-        .btn-enviar {
-            width: 100%; padding: 15px; background-color: var(--primary-color);
-            color: white; border: none; border-radius: 10px;
-            font-size: 1.2rem; font-weight: bold; cursor: pointer;
+        .ticket-list { max-height: 150px; overflow-y: auto; margin-bottom: 10px; font-size: 0.9rem; }
+        .ticket-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dotted #ccc; }
+        .btn-del { color: red; font-weight: bold; margin-left: 10px; cursor: pointer; padding: 0 5px; }
+        
+        .btn-send {
+            width: 100%; padding: 15px; background: var(--primary); color: white;
+            border: none; border-radius: 12px; font-size: 1.2rem; font-weight: bold; cursor: pointer;
         }
-        .btn-enviar:disabled { background-color: #ccc; cursor: not-allowed; }
-
-        /* Lista desplegable */
-        #lista-pedidos {
-            max-height: 200px; overflow-y: auto; margin-bottom: 10px;
-            border-top: 1px solid #eee; padding-top: 10px; font-size: 0.9rem;
-        }
-        .item-pedido { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dotted #eee; }
-        .btn-eliminar { color: red; font-weight: bold; margin-left: 10px; cursor: pointer; }
+        .btn-send:disabled { background: #ccc; }
+        
+        .version { text-align: center; font-size: 0.7rem; color: #999; margin-top: 5px; }
     </style>
 </head>
 <body>
 
     <header>
-        <div class="mesa-selector">
-            <span>Mesa:</span>
-            <input type="number" id="numMesa" placeholder="#" inputmode="numeric">
+        <div>
+            <b>MESA:</b> <input type="number" id="mesa" class="mesa-input" placeholder="#">
         </div>
-        <div style="color:green; font-weight:bold;">🟢 Online</div>
+        <div style="font-size:0.8rem; color:green;">🟢 Conectado</div>
     </header>
 
-    <section class="tabs">
-        <button class="tab-btn btn-bebida active" onclick="filtrarCategoria('bebida')">Bebidas</button>
-        <button class="tab-btn btn-comida" onclick="filtrarCategoria('comida')">Comidas</button>
-    </section>
+    <div class="tabs">
+        <button class="tab bg-drink active" onclick="ver('bebida')">BEBIDAS</button>
+        <button class="tab bg-food" onclick="ver('comida')">COMIDAS</button>
+    </div>
 
-    <main id="contenedor-productos" class="grid-productos">
-        </main>
+    <div id="grid" class="grid"></div>
 
-    <aside id="ticket-resumen">
-        <div id="lista-pedidos"></div>
-        <div class="resumen-info">
-            <span id="contador-items">0 prod.</span>
-            <span id="total-precio">0.00 €</span>
+    <div class="ticket">
+        <div id="lista" class="ticket-list"></div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold;">
+            <span id="contador">0 productos</span>
+            <span id="total">0.00 €</span>
         </div>
-        <button id="btn-enviar" class="btn-enviar" onclick="enviarComanda()">
-            Selecciona productos
-        </button>
-    </aside>
+        <button id="btn" class="btn-send" onclick="enviar()">Selecciona algo...</button>
+        <div class="version">System v2.0 - Stable</div>
+    </div>
 
     <script>
-        // --- CONFIGURACIÓN ---
-        // 👇👇 PEGA TU URL DEL SCRIPT AQUÍ (LA QUE TERMINA EN /exec) 👇👇
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzOmI7m6OiimyaGX3iOo0JAP0T33ZWtn_Nd0OCwelva_XVFXNPlz6OjPuMqcj5VWL9a/exec"; 
-        // 👆👆 REVISA QUE NO TENGA ESPACIOS AL FINAL 👆👆
+        // ==========================================
+        // ⚠️ PEGA AQUÍ TU URL DE GOOGLE SCRIPT ⚠️
+        // Asegúrate que termina en /exec y NO hay espacios
+        const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbzOmI7m6OiimyaGX3iOo0JAP0T33ZWtn_Nd0OCwelva_XVFXNPlz6OjPuMqcj5VWL9a/exec";
+        // ==========================================
 
         const productos = [
-            { id: 1, nombre: "Caña", precio: 1.50, cat: "bebida" },
-            { id: 2, nombre: "Doble", precio: 2.50, cat: "bebida" },
-            { id: 3, nombre: "Refresco", precio: 2.00, cat: "bebida" },
-            { id: 4, nombre: "Vino", precio: 3.00, cat: "bebida" },
-            { id: 5, nombre: "Café", precio: 1.20, cat: "bebida" },
-            { id: 6, nombre: "Bravas", precio: 4.50, cat: "comida" },
-            { id: 7, nombre: "Croquetas", precio: 6.00, cat: "comida" },
-            { id: 8, nombre: "Hamburguesa", precio: 9.50, cat: "comida" },
-            { id: 9, nombre: "Ensalada", precio: 7.00, cat: "comida" },
-            { id: 10, nombre: "Tortilla", precio: 3.50, cat: "comida" }
+            { n: "Caña", p: 1.50, c: "bebida" },
+            { n: "Doble", p: 2.50, c: "bebida" },
+            { n: "Refresco", p: 2.00, c: "bebida" },
+            { n: "Vino", p: 3.00, c: "bebida" },
+            { n: "Café", p: 1.20, c: "bebida" },
+            { n: "Bravas", p: 4.50, c: "comida" },
+            { n: "Croquetas", p: 6.00, c: "comida" },
+            { n: "Hamburguesa", p: 9.50, c: "comida" },
+            { n: "Ensalada", p: 7.00, c: "comida" },
+            { n: "Tortilla", p: 3.50, c: "comida" }
         ];
 
         let carrito = [];
 
-        // Inicializar
-        window.onload = function() {
-            console.log("App iniciada");
-            filtrarCategoria('bebida'); 
-            actualizarTicket();
-        };
+        window.onload = () => { ver('bebida'); renderTicket(); };
 
-        function filtrarCategoria(cat) {
-            const grid = document.getElementById('contenedor-productos');
-            grid.innerHTML = '';
+        function ver(cat) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.bg-${cat === 'bebida' ? 'drink' : 'food'}`).classList.add('active');
             
-            // Estilos botones
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelector(`.btn-${cat}`).classList.add('active');
-
-            // Renderizar items
-            productos.filter(p => p.cat === cat).forEach(prod => {
-                const card = document.createElement('div');
-                card.className = `card-producto tipo-${prod.cat}`;
-                card.onclick = () => agregar(prod);
-                card.innerHTML = `
-                    <span class="prod-nombre">${prod.nombre}</span>
-                    <span class="prod-precio">${prod.precio.toFixed(2)}€</span>
-                `;
-                grid.appendChild(card);
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            productos.filter(x => x.c === cat).forEach(p => {
+                const div = document.createElement('div');
+                div.className = `card type-${p.c}`;
+                div.innerHTML = `<span class="p-name">${p.n}</span><span>${p.p.toFixed(2)}€</span>`;
+                div.onclick = () => { carrito.push(p); renderTicket(); };
+                grid.appendChild(div);
             });
         }
 
-        function agregar(prod) {
-            carrito.push(prod);
-            actualizarTicket();
-        }
-
-        function eliminar(index) {
-            carrito.splice(index, 1);
-            actualizarTicket();
-        }
-
-        function actualizarTicket() {
-            const lista = document.getElementById('lista-pedidos');
-            const totalEl = document.getElementById('total-precio');
-            const countEl = document.getElementById('contador-items');
-            const btn = document.getElementById('btn-enviar');
-
+        function renderTicket() {
+            const lista = document.getElementById('lista');
             lista.innerHTML = '';
-            let total = 0;
-
-            carrito.forEach((item, i) => {
-                total += item.precio;
-                lista.innerHTML += `
-                    <div class="item-pedido">
-                        <span>${item.nombre}</span>
-                        <div>
-                            <span>${item.precio.toFixed(2)}€</span>
-                            <span class="btn-eliminar" onclick="eliminar(${i})">✖</span>
-                        </div>
-                    </div>`;
+            let t = 0;
+            carrito.forEach((p, i) => {
+                t += p.p;
+                lista.innerHTML += `<div class="ticket-item">
+                    <span>${p.n}</span>
+                    <div>${p.p.toFixed(2)}€ <span class="btn-del" onclick="borrar(${i})">✖</span></div>
+                </div>`;
             });
-
-            totalEl.innerText = total.toFixed(2) + " €";
-            countEl.innerText = carrito.length + " prod.";
-
-            if (carrito.length > 0) {
+            document.getElementById('total').innerText = t.toFixed(2) + ' €';
+            document.getElementById('contador').innerText = carrito.length + ' prod.';
+            
+            const btn = document.getElementById('btn');
+            if(carrito.length > 0) {
                 btn.disabled = false;
-                btn.innerText = `Enviar a Cocina (${total.toFixed(2)}€) 🚀`;
-                btn.style.opacity = "1";
+                btn.innerText = `ENVIAR PEDIDO (${t.toFixed(2)}€) 🚀`;
             } else {
                 btn.disabled = true;
-                btn.innerText = "Selecciona productos";
-                btn.style.opacity = "0.5";
+                btn.innerText = "Selecciona productos...";
             }
         }
 
-        // --- FUNCIÓN DE ENVÍO QUE FUNCIONA (GET) ---
-        function enviarComanda() {
-            const mesa = document.getElementById('numMesa').value;
-            if (!mesa) { alert("⚠️ ¡Falta el número de mesa!"); return; }
+        function borrar(i) { carrito.splice(i, 1); renderTicket(); }
 
-            const btn = document.getElementById('btn-enviar');
+        function enviar() {
+            const mesa = document.getElementById('mesa').value;
+            if(!mesa) { alert("⚠️ ¡Falta el número de MESA!"); return; }
+
+            const btn = document.getElementById('btn');
             btn.innerText = "Enviando...";
             btn.disabled = true;
 
+            // PREPARAR DATOS
             const datos = { mesa: mesa, carrito: carrito };
+            // Codificamos para URL de forma segura
             const payload = encodeURIComponent(JSON.stringify(datos));
-            const urlFinal = SCRIPT_URL + "?datos=" + payload;
+            const urlFinal = `${URL_SCRIPT}?datos=${payload}`;
 
-            fetch(urlFinal, { method: "GET", mode: "no-cors" })
+            // ESTRATEGIA GET (La más robusta para GitHub Pages)
+            fetch(urlFinal, {
+                method: 'GET',
+                mode: 'no-cors', // Importante para saltar seguridad del navegador
+            })
             .then(() => {
-                alert("✅ ¡Pedido enviado correctamente!");
+                // Al ser no-cors, si llega aquí asumimos éxito
+                alert(`✅ ¡Pedido enviado a Mesa ${mesa}!`);
                 carrito = [];
-                actualizarTicket();
-                document.getElementById('numMesa').value = ''; // Limpiar mesa opcional
+                renderTicket();
             })
             .catch(err => {
-                alert("❌ Error: " + err);
+                console.error(err);
+                alert("❌ ERROR DE CONEXIÓN. \n\n1. Revisa tu internet.\n2. Verifica que la URL del Script sea correcta.");
             })
             .finally(() => {
-                btn.disabled = false;
-                actualizarTicket();
+                if(carrito.length > 0) btn.disabled = false; // Restaurar si falló
+                renderTicket();
             });
         }
     </script>
